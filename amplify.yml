@@ -6,6 +6,9 @@ frontend:
         - npm ci
     build:
       commands:
+        - echo "Checking environment variables..."
+        - echo "GOOGLE_CLIENT_ID is set:" && test -n "$GOOGLE_CLIENT_ID" && echo "YES" || echo "NO"
+        - echo "API_URL is set:" && test -n "$API_URL" && echo "YES" || echo "NO"
         - export VITE_GOOGLE_CLIENT_ID="${GOOGLE_CLIENT_ID}"
         - export VITE_API_URL="${API_URL}"
         - npm run build
