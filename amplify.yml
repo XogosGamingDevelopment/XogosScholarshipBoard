@@ -6,6 +6,8 @@ frontend:
         - npm ci
     build:
       commands:
+        - export VITE_GOOGLE_CLIENT_ID="${GOOGLE_CLIENT_ID}"
+        - export VITE_API_URL="${API_URL}"
         - npm run build
   artifacts:
     baseDirectory: dist
