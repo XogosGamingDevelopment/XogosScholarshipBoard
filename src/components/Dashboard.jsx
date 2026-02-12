@@ -71,6 +71,7 @@ function Dashboard({ boardMember }) {
       } else {
         // No active batch, get pending students
         setCurrentBatch(null)
+        setActiveMembers(batchResponse.active_members || [])
         const studentsResponse = await getPendingStudents()
         if (studentsResponse.success) {
           setStudents(studentsResponse.students || [])

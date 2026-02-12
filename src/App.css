@@ -610,8 +610,8 @@ body {
    LIGHT THEME
    ======================================== */
 [data-theme="light"] {
-  --primary-color: #ff6900;
-  --primary-dark: #e55a00;
+  --primary-color: #e05a00;
+  --primary-dark: #c44d00;
   --secondary-color: #f0f0f5;
   --background-color: #ffffff;
   --card-background: #f8f8fc;
@@ -624,7 +624,16 @@ body {
 }
 
 [data-theme="light"] .student-table tr:hover td {
-  background: rgba(255, 105, 0, 0.08);
+  background: rgba(224, 90, 0, 0.06);
+}
+
+[data-theme="light"] .sidebar-link.active {
+  background: #c44d00;
+}
+
+[data-theme="light"] .confirmation-question {
+  background: rgba(224, 90, 0, 0.08);
+  border-color: #c44d00;
 }
 
 /* ========================================
