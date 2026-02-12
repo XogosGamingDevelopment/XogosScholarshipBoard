@@ -299,6 +299,11 @@ function Dashboard({ boardMember }) {
             </div>
           ))}
         </div>
+        {hasBatch && batchStatus === 'pending' && (
+          <div className="confirmation-question">
+            <p>Do you confirm these findings and do you agree to distribute these funds?</p>
+          </div>
+        )}
       </div>
 
       {/* Stats */}
@@ -381,6 +386,7 @@ function Dashboard({ boardMember }) {
           <StudentTable
             students={displayStudents}
             showUsd={hasBatch || (fundAmount && parseFloat(fundAmount) > 0)}
+            showParentEmail={boardMember.is_admin}
           />
         ) : (
           <div className="no-data">

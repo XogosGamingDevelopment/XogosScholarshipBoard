@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-function StudentTable({ students, showUsd = false }) {
+function StudentTable({ students, showUsd = false, showParentEmail = false }) {
   const [sortField, setSortField] = useState('usd_amount')
   const [sortDirection, setSortDirection] = useState('desc')
   const [searchTerm, setSearchTerm] = useState('')
@@ -74,7 +74,7 @@ function StudentTable({ students, showUsd = false }) {
             >
               Student Name <SortIcon field="name" />
             </th>
-            <th>Parent Email</th>
+            {showParentEmail && <th>Parent Email</th>}
             <th
               onClick={() => handleSort('pending_scholarship')}
               style={{ cursor: 'pointer', textAlign: 'right' }}
@@ -102,9 +102,11 @@ function StudentTable({ students, showUsd = false }) {
             <tr key={student.user_id}>
               <td>{index + 1}</td>
               <td>{student.firstname} {student.lastname}</td>
-              <td style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-                {student.parent_email || 'N/A'}
-              </td>
+              {showParentEmail && (
+                <td style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                  {student.parent_email || 'N/A'}
+                </td>
+              )}
               <td className="amount coins" style={{ textAlign: 'right' }}>
                 {student.pending_scholarship?.toLocaleString() || 0}
               </td>
@@ -122,7 +124,7 @@ function StudentTable({ students, showUsd = false }) {
             <tr style={{ background: 'var(--secondary-color)', fontWeight: '600' }}>
               <td></td>
               <td>TOTAL ({sortedStudents.length} students)</td>
-              <td></td>
+              {showParentEmail && <td></td>}
               <td className="amount coins" style={{ textAlign: 'right' }}>
                 {totalCoins.toLocaleString()}
               </td>

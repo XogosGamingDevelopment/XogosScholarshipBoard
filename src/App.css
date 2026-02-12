@@ -1260,6 +1260,21 @@ body {
   font-size: 1rem;
 }
 
+.confirmation-question {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: rgba(255, 105, 0, 0.1);
+  border: 1px solid var(--primary-color);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.confirmation-question p {
+  color: var(--text-primary);
+  font-weight: 500;
+  margin: 0;
+}
+
 /* ========================================
    RESPONSIVE - MOBILE
    ======================================== */
