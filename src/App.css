@@ -612,12 +612,12 @@ body {
 [data-theme="light"] {
   --primary-color: #e05a00;
   --primary-dark: #c44d00;
-  --secondary-color: #f0f0f5;
-  --background-color: #ffffff;
-  --card-background: #f8f8fc;
-  --border-color: #e0e0e8;
+  --secondary-color: #e8e8ed;
+  --background-color: #e0e0e6;
+  --card-background: #ececf0;
+  --border-color: #c8c8d0;
   --text-primary: #1a1a2e;
-  --text-secondary: #606070;
+  --text-secondary: #505060;
   --success-color: #16a34a;
   --warning-color: #d97706;
   --error-color: #dc2626;
