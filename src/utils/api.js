@@ -101,3 +101,56 @@ export const pollForUpdates = async (batchId, lastHash = '', timeout = 30) => {
   )
   return response.data
 }
+
+// Board Members API
+export const getAllMembers = async () => {
+  const response = await axios.get(`${API_URL}/members/get_all_members.php`, {
+    headers: getAuthHeaders()
+  })
+  return response.data
+}
+
+// Comments APIs
+export const getComments = async (batchId) => {
+  const response = await axios.get(
+    `${API_URL}/comments/get_comments.php?batch_id=${batchId}`,
+    { headers: getAuthHeaders() }
+  )
+  return response.data
+}
+
+export const saveComment = async (batchId, comment, includeInPdf = false) => {
+  const response = await axios.post(
+    `${API_URL}/comments/save_comment.php`,
+    { batch_id: batchId, comment, include_in_pdf: includeInPdf },
+    { headers: getAuthHeaders() }
+  )
+  return response.data
+}
+
+// Scholarship Recipients API
+export const getScholarshipRecipients = async () => {
+  const response = await axios.get(`${API_URL}/scholarship/get_scholarship_recipients.php`, {
+    headers: getAuthHeaders()
+  })
+  return response.data
+}
+
+// Default export for convenience
+export default {
+  getGoogleAuthUrl,
+  handleGoogleCallback,
+  verifyToken,
+  getPendingStudents,
+  getCurrentBatch,
+  createBatch,
+  approveBatch,
+  executeDistribution,
+  getHistory,
+  getPdfData,
+  pollForUpdates,
+  getAllMembers,
+  getComments,
+  saveComment,
+  getScholarshipRecipients
+}

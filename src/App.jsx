@@ -3,6 +3,10 @@ import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import LoginPage from './components/LoginPage'
 import Dashboard from './components/Dashboard'
 import HistoryPage from './components/HistoryPage'
+import StudentsPage from './components/StudentsPage'
+import CommentsPage from './components/CommentsPage'
+import SettingsPage from './components/SettingsPage'
+import Layout from './components/Layout'
 import { verifyToken } from './utils/api'
 
 function App() {
@@ -60,6 +64,18 @@ function App() {
     )
   }
 
+  // Protected route wrapper with Layout
+  const ProtectedRoute = ({ children }) => {
+    if (!isAuthenticated) {
+      return <Navigate to="/" replace />
+    }
+    return (
+      <Layout boardMember={boardMember} onLogout={handleLogout}>
+        {children}
+      </Layout>
+    )
+  }
+
   return (
     <div className="app">
       <Routes>
@@ -80,21 +96,41 @@ function App() {
         <Route
           path="/dashboard"
           element={
-            isAuthenticated ? (
-              <Dashboard boardMember={boardMember} onLogout={handleLogout} />
-            ) : (
-              <Navigate to="/" replace />
-            )
+            <ProtectedRoute>
+              <Dashboard boardMember={boardMember} />
+            </ProtectedRoute>
           }
         />
         <Route
           path="/history"
           element={
-            isAuthenticated ? (
-              <HistoryPage boardMember={boardMember} onLogout={handleLogout} />
-            ) : (
-              <Navigate to="/" replace />
-            )
+            <ProtectedRoute>
+              <HistoryPage boardMember={boardMember} />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/students"
+          element={
+            <ProtectedRoute>
+              <StudentsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/comments"
+          element={
+            <ProtectedRoute>
+              <CommentsPage boardMember={boardMember} />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <SettingsPage />
+            </ProtectedRoute>
           }
         />
         <Route path="*" element={<Navigate to="/" replace />} />

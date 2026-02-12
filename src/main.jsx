@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { GoogleOAuthProvider } from '@react-oauth/google'
 import App from './App'
 import ErrorBoundary from './ErrorBoundary'
+import { ThemeProvider } from './contexts/ThemeContext'
 import './App.css'
 
 const googleClientId = (import.meta.env.VITE_GOOGLE_CLIENT_ID || '').trim()
@@ -25,11 +26,13 @@ if (!googleClientId) {
   ReactDOM.createRoot(document.getElementById('root')).render(
     <React.StrictMode>
       <ErrorBoundary>
-        <GoogleOAuthProvider clientId={googleClientId}>
-          <BrowserRouter>
-            <App />
-          </BrowserRouter>
-        </GoogleOAuthProvider>
+        <ThemeProvider>
+          <GoogleOAuthProvider clientId={googleClientId}>
+            <BrowserRouter>
+              <App />
+            </BrowserRouter>
+          </GoogleOAuthProvider>
+        </ThemeProvider>
       </ErrorBoundary>
     </React.StrictMode>
   )

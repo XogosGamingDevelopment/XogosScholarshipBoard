@@ -90,6 +90,35 @@ export const generateDistributionPdf = (reportData) => {
     doc.text('No approvals recorded yet.', 14, currentY + 10)
   }
 
+  // Board Member Comments Section (if any comments are included for PDF)
+  if (reportData.comments && reportData.comments.length > 0) {
+    currentY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : currentY + 20
+
+    doc.setFontSize(12)
+    doc.setTextColor(...textColor)
+    doc.text('Board Member Comments', 14, currentY)
+
+    const commentRows = reportData.comments.map(comment => [
+      comment.name,
+      comment.comment,
+      comment.created_at
+    ])
+
+    doc.autoTable({
+      startY: currentY + 5,
+      head: [['Board Member', 'Comment', 'Date']],
+      body: commentRows,
+      theme: 'striped',
+      headStyles: { fillColor: primaryColor },
+      styles: { fontSize: 8 },
+      columnStyles: {
+        0: { cellWidth: 35 },
+        1: { cellWidth: 'auto' },
+        2: { cellWidth: 35 }
+      }
+    })
+  }
+
   // Student Allocations Section
   currentY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : currentY + 20
 

@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Link } from 'react-router-dom'
 import StudentTable from './StudentTable'
 import ApprovalPanel from './ApprovalPanel'
 import DistributionModal from './DistributionModal'
@@ -10,16 +9,20 @@ import {
   approveBatch,
   executeDistribution,
   pollForUpdates,
-  getPdfData
+  getPdfData,
+  getAllMembers
 } from '../utils/api'
 import { downloadPdf } from '../utils/pdfGenerator'
 
-function Dashboard({ boardMember, onLogout }) {
+function Dashboard({ boardMember }) {
   const [students, setStudents] = useState([])
   const [totalCoins, setTotalCoins] = useState(0)
   const [currentBatch, setCurrentBatch] = useState(null)
   const [approvals, setApprovals] = useState([])
   const [activeMembers, setActiveMembers] = useState([])
+  const [allMembers, setAllMembers] = useState([])
+  const [lastDistributionDate, setLastDistributionDate] = useState(null)
+  const [currentDate, setCurrentDate] = useState(null)
   const [fundAmount, setFundAmount] = useState('')
   const [notes, setNotes] = useState('')
   const [isLoading, setIsLoading] = useState(true)
@@ -33,11 +36,21 @@ function Dashboard({ boardMember, onLogout }) {
 
   const fetchData = useCallback(async () => {
     try {
+      // Fetch all board members
+      const membersResponse = await getAllMembers()
+      if (membersResponse.success) {
+        setAllMembers(membersResponse.members || [])
+      }
+
       // Check for existing batch first
       const batchResponse = await getCurrentBatch()
 
+      // Store period dates
+      setLastDistributionDate(batchResponse.last_distribution_date)
+      setCurrentDate(batchResponse.current_date)
+
       if (batchResponse.success && batchResponse.batch) {
-        setCurrentBatch(batchResponse.batch)
+        setCurrentBatch(batchResponse)
         setApprovals(batchResponse.approvals)
         setActiveMembers(batchResponse.active_members || [])
 
@@ -204,15 +217,31 @@ function Dashboard({ boardMember, onLogout }) {
     }))
   }
 
+  const formatDate = (dateStr) => {
+    if (!dateStr) return 'N/A'
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    })
+  }
+
+  // Check if a member is online
+  const isMemberOnline = (memberId) => {
+    return activeMembers.some(m => m.id === memberId)
+  }
+
+  // Check if a member has approved
+  const hasMemberApproved = (memberId) => {
+    return approvals?.list?.some(a => a.board_member_id === memberId)
+  }
+
   if (isLoading) {
     return (
-      <div className="dashboard">
-        <DashboardHeader boardMember={boardMember} onLogout={onLogout} />
-        <div className="dashboard-content">
-          <div className="loading-screen">
-            <div className="loading-spinner"></div>
-            <p>Loading...</p>
-          </div>
+      <div className="dashboard-content">
+        <div className="loading-screen">
+          <div className="loading-spinner"></div>
+          <p>Loading...</p>
         </div>
       </div>
     )
@@ -225,152 +254,182 @@ function Dashboard({ boardMember, onLogout }) {
   const canExecute = hasBatch && approvals?.can_execute && boardMember.is_admin
 
   return (
-    <div className="dashboard">
-      <DashboardHeader boardMember={boardMember} onLogout={onLogout} />
+    <div className="dashboard-page">
+      {error && (
+        <div className="alert alert-error">{error}</div>
+      )}
 
-      <div className="dashboard-content">
-        {error && (
-          <div className="card" style={{ background: 'rgba(239, 68, 68, 0.1)', borderColor: 'var(--error-color)' }}>
-            <p style={{ color: 'var(--error-color)', margin: 0 }}>{error}</p>
-          </div>
-        )}
+      {successMessage && (
+        <div className="alert alert-success">{successMessage}</div>
+      )}
 
-        {successMessage && (
-          <div className="card" style={{ background: 'rgba(34, 197, 94, 0.1)', borderColor: 'var(--success-color)' }}>
-            <p style={{ color: 'var(--success-color)', margin: 0 }}>{successMessage}</p>
+      {/* Period Info Card */}
+      <div className="card period-card">
+        <div className="stat-label">Distribution Period</div>
+        <div className="period-dates">
+          <div className="period-date">
+            <div className="date-label">Last Distribution</div>
+            <div className="date-value">{formatDate(lastDistributionDate) || 'First Distribution'}</div>
           </div>
-        )}
-
-        {/* Stats */}
-        <div className="stats-grid">
-          <div className="stat-card">
-            <div className="stat-label">Students Ready</div>
-            <div className="stat-value">{students.length}</div>
+          <span className="period-arrow">→</span>
+          <div className="period-date">
+            <div className="date-label">Today</div>
+            <div className="date-value">{formatDate(currentDate)}</div>
           </div>
-          <div className="stat-card">
-            <div className="stat-label">Total Coins Converted</div>
-            <div className="stat-value coins">{totalCoins.toLocaleString()}</div>
-          </div>
-          {hasBatch && (
-            <>
-              <div className="stat-card">
-                <div className="stat-label">Scholarship Fund</div>
-                <div className="stat-value currency">
-                  ${currentBatch.batch.total_fund_usd.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                </div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-label">Batch Status</div>
-                <div className="stat-value" style={{ textTransform: 'capitalize' }}>
-                  {batchStatus}
-                </div>
-              </div>
-            </>
-          )}
         </div>
+      </div>
 
-        {/* Fund Input (only for admin when no batch) */}
-        {boardMember.is_admin && !hasBatch && students.length > 0 && (
-          <div className="card">
-            <div className="card-header">
-              <h3 className="card-title">Create Distribution Batch</h3>
+      {/* Board Members Card */}
+      <div className="card">
+        <div className="card-header">
+          <h3 className="card-title">Board Members</h3>
+          <span className="text-muted">
+            {allMembers.filter(m => isMemberOnline(m.id)).length} online
+          </span>
+        </div>
+        <div className="members-grid">
+          {allMembers.map(member => (
+            <div
+              key={member.id}
+              className={`member-card ${isMemberOnline(member.id) ? 'online' : ''} ${hasMemberApproved(member.id) ? 'approved' : ''}`}
+            >
+              <span className={`member-status ${isMemberOnline(member.id) ? 'online' : ''}`}></span>
+              <span className="member-name">{member.firstname}</span>
+              {hasMemberApproved(member.id) && <span className="member-approved">✓</span>}
             </div>
-            <div className="fund-input-section">
-              <div className="input-group">
-                <label>Total Scholarship Fund (USD)</label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="Enter amount (e.g., 5000)"
-                  value={fundAmount}
-                  onChange={(e) => setFundAmount(e.target.value)}
-                />
+          ))}
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="stats-grid">
+        <div className="stat-card">
+          <div className="stat-label">Students Ready</div>
+          <div className="stat-value">{students.length}</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">Total Coins Converted</div>
+          <div className="stat-value coins">{totalCoins.toLocaleString()}</div>
+        </div>
+        {hasBatch && (
+          <>
+            <div className="stat-card">
+              <div className="stat-label">Scholarship Fund</div>
+              <div className="stat-value currency">
+                ${currentBatch.batch.total_fund_usd.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </div>
-              <div className="input-group">
-                <label>Notes (optional)</label>
-                <input
-                  type="text"
-                  placeholder="e.g., Q1 2026 Distribution"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                />
-              </div>
-              <button
-                className="btn btn-primary"
-                onClick={handleCreateBatch}
-                disabled={isCreating || !fundAmount}
-              >
-                {isCreating ? 'Creating...' : 'Create Batch'}
-              </button>
             </div>
-          </div>
+            <div className="stat-card">
+              <div className="stat-label">Batch Status</div>
+              <div className="stat-value" style={{ textTransform: 'capitalize' }}>
+                {batchStatus}
+              </div>
+            </div>
+          </>
         )}
+      </div>
 
-        {/* Student Table */}
+      {/* Fund Input (only for admin when no batch) */}
+      {boardMember.is_admin && !hasBatch && students.length > 0 && (
         <div className="card">
           <div className="card-header">
-            <h3 className="card-title">Student Allocations</h3>
-            {hasBatch && batchStatus === 'distributed' && (
-              <button className="btn btn-primary" onClick={handleDownloadPdf}>
-                Download PDF Report
-              </button>
-            )}
+            <h3 className="card-title">Create Distribution Batch</h3>
           </div>
-          {students.length > 0 ? (
-            <StudentTable
-              students={displayStudents}
-              showUsd={hasBatch || (fundAmount && parseFloat(fundAmount) > 0)}
-            />
-          ) : (
-            <div className="no-data">
-              <div className="no-data-icon">&#128218;</div>
-              <p>No students have converted coins for scholarship yet.</p>
+          <div className="fund-input-section">
+            <div className="input-group">
+              <label>Total Scholarship Fund (USD)</label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="Enter amount (e.g., 5000)"
+                value={fundAmount}
+                onChange={(e) => setFundAmount(e.target.value)}
+              />
             </div>
-          )}
-        </div>
-
-        {/* Approval Panel (when batch exists) */}
-        {hasBatch && batchStatus !== 'distributed' && (
-          <div className="card">
-            <div className="card-header">
-              <h3 className="card-title">Approval Status</h3>
+            <div className="input-group">
+              <label>Notes (optional)</label>
+              <input
+                type="text"
+                placeholder="e.g., Q1 2026 Distribution"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
             </div>
-            <ApprovalPanel
-              approvals={approvals}
-              activeMembers={activeMembers}
-              canApprove={canApprove}
-              canExecute={canExecute}
-              isApproving={isApproving}
-              isExecuting={isExecuting}
-              onApprove={handleApprove}
-              onExecute={() => setShowConfirmModal(true)}
-            />
-          </div>
-        )}
-
-        {/* Completed Distribution */}
-        {hasBatch && batchStatus === 'distributed' && (
-          <div className="card" style={{ background: 'rgba(34, 197, 94, 0.1)', borderColor: 'var(--success-color)' }}>
-            <h3 style={{ color: 'var(--success-color)', marginBottom: '0.5rem' }}>
-              Distribution Completed
-            </h3>
-            <p style={{ color: 'var(--text-secondary)' }}>
-              This batch was distributed on {new Date(currentBatch.batch.distributed_at).toLocaleString()}
-            </p>
             <button
               className="btn btn-primary"
-              style={{ marginTop: '1rem' }}
-              onClick={() => {
-                setCurrentBatch(null)
-                fetchData()
-              }}
+              onClick={handleCreateBatch}
+              disabled={isCreating || !fundAmount}
             >
-              Start New Distribution
+              {isCreating ? 'Creating...' : 'Create Batch'}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Student Table */}
+      <div className="card">
+        <div className="card-header">
+          <h3 className="card-title">Student Allocations</h3>
+          {hasBatch && batchStatus === 'distributed' && (
+            <button className="btn btn-primary" onClick={handleDownloadPdf}>
+              Download PDF Report
+            </button>
+          )}
+        </div>
+        {students.length > 0 ? (
+          <StudentTable
+            students={displayStudents}
+            showUsd={hasBatch || (fundAmount && parseFloat(fundAmount) > 0)}
+          />
+        ) : (
+          <div className="no-data">
+            <div className="no-data-icon">📚</div>
+            <p>No students have converted coins for scholarship yet.</p>
           </div>
         )}
       </div>
+
+      {/* Approval Panel (when batch exists) */}
+      {hasBatch && batchStatus !== 'distributed' && (
+        <div className="card">
+          <div className="card-header">
+            <h3 className="card-title">Approval Status</h3>
+          </div>
+          <ApprovalPanel
+            approvals={approvals}
+            activeMembers={activeMembers}
+            canApprove={canApprove}
+            canExecute={canExecute}
+            isApproving={isApproving}
+            isExecuting={isExecuting}
+            onApprove={handleApprove}
+            onExecute={() => setShowConfirmModal(true)}
+          />
+        </div>
+      )}
+
+      {/* Completed Distribution */}
+      {hasBatch && batchStatus === 'distributed' && (
+        <div className="card" style={{ background: 'rgba(34, 197, 94, 0.1)', borderColor: 'var(--success-color)' }}>
+          <h3 style={{ color: 'var(--success-color)', marginBottom: '0.5rem' }}>
+            Distribution Completed
+          </h3>
+          <p style={{ color: 'var(--text-secondary)' }}>
+            This batch was distributed on {new Date(currentBatch.batch.distributed_at).toLocaleString()}
+          </p>
+          <button
+            className="btn btn-primary"
+            style={{ marginTop: '1rem' }}
+            onClick={() => {
+              setCurrentBatch(null)
+              fetchData()
+            }}
+          >
+            Start New Distribution
+          </button>
+        </div>
+      )}
 
       {/* Confirmation Modal */}
       {showConfirmModal && (
@@ -382,41 +441,6 @@ function Dashboard({ boardMember, onLogout }) {
         />
       )}
     </div>
-  )
-}
-
-function DashboardHeader({ boardMember, onLogout }) {
-  return (
-    <header className="dashboard-header">
-      <div className="header-left">
-        <span className="header-logo">&#127891;</span>
-        <span className="header-title">Xogos Scholarship Board</span>
-      </div>
-      <div className="header-right">
-        <nav className="nav-links">
-          <Link to="/dashboard" className="nav-link active">Dashboard</Link>
-          <Link to="/history" className="nav-link">History</Link>
-        </nav>
-        <div className="user-info">
-          <div className="user-avatar">
-            {boardMember.img ? (
-              <img src={boardMember.img} alt={boardMember.firstname} />
-            ) : (
-              boardMember.firstname?.charAt(0) || 'B'
-            )}
-          </div>
-          <div>
-            <div className="user-name">
-              {boardMember.firstname} {boardMember.lastname}
-            </div>
-            {boardMember.is_admin && <span className="admin-badge">Admin</span>}
-          </div>
-        </div>
-        <button className="logout-btn" onClick={onLogout}>
-          Logout
-        </button>
-      </div>
-    </header>
   )
 }
 
