@@ -9,7 +9,7 @@ import {
   approveBatch,
   executeDistribution,
   pollForUpdates,
-  getPdfData,
+  getStoredReport,
   getAllMembers
 } from '../utils/api'
 import { downloadPdf } from '../utils/pdfGenerator'
@@ -200,13 +200,16 @@ function Dashboard({ boardMember }) {
   }
 
   const handleDownloadPdf = async () => {
+    // Reports are permanent snapshots frozen at execution — never regenerated from live data.
     try {
-      const response = await getPdfData(currentBatch.batch.batch_id)
-      if (response.success) {
+      const response = await getStoredReport(currentBatch.batch.batch_id)
+      if (response.success && response.report_data) {
         downloadPdf(response.report_data)
+      } else {
+        setError('No stored report found for this batch.')
       }
     } catch (err) {
-      setError('Failed to generate PDF')
+      setError(err.response?.data?.message || 'Failed to load the stored report')
     }
   }
 

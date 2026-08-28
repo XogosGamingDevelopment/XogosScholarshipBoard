@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { getHistory, getPdfData, getStoredReport } from '../utils/api'
+import { getHistory, getStoredReport } from '../utils/api'
 import { downloadPdf } from '../utils/pdfGenerator'
 
 function HistoryPage({ boardMember, onLogout }) {
   const [batches, setBatches] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [total, setTotal] = useState(0)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     fetchHistory()
@@ -26,27 +27,17 @@ function HistoryPage({ boardMember, onLogout }) {
   }
 
   const handleDownloadPdf = async (batchId) => {
-    // Prefer the PERMANENT stored snapshot — frozen at execution, never recomputed.
-    // Batches distributed before 2026-08-28 have none, so fall back to live regeneration.
+    // Reports are permanent snapshots frozen at execution — never regenerated from live data.
+    setError('')
     try {
       const stored = await getStoredReport(batchId)
       if (stored.success && stored.report_data) {
         downloadPdf(stored.report_data)
-        return
+      } else {
+        setError(`No stored report found for batch #${batchId}.`)
       }
     } catch (err) {
-      if (err.response?.status !== 404) {
-        console.error('Error loading stored report:', err)
-      }
-    }
-
-    try {
-      const response = await getPdfData(batchId)
-      if (response.success) {
-        downloadPdf(response.report_data)
-      }
-    } catch (err) {
-      console.error('Error generating PDF:', err)
+      setError(err.response?.data?.message || `Could not load the report for batch #${batchId}.`)
     }
   }
 
@@ -88,6 +79,10 @@ function HistoryPage({ boardMember, onLogout }) {
       </header>
 
       <div className="dashboard-content">
+        {error && (
+          <div className="alert alert-error">{error}</div>
+        )}
+
         <div className="card">
           <div className="card-header">
             <h3 className="card-title">Distribution History</h3>
@@ -131,7 +126,14 @@ function HistoryPage({ boardMember, onLogout }) {
                         {batch.total_coins_converted.toLocaleString()}
                       </td>
                       <td>{batch.student_count}</td>
-                      <td>{batch.approval_count} / 3</td>
+                      <td>
+                        {batch.approval_count} / {batch.required_accepts ?? 3}
+                        {batch.decline_count > 0 && (
+                          <span style={{ color: 'var(--text-secondary)', marginLeft: '0.4rem' }}>
+                            ({batch.decline_count} declined)
+                          </span>
+                        )}
+                      </td>
                       <td>{getStatusBadge(batch.status)}</td>
                       <td>{batch.created_by}</td>
                       <td>

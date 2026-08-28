@@ -86,14 +86,6 @@ export const getHistory = async (limit = 20, offset = 0) => {
   return response.data
 }
 
-export const getPdfData = async (batchId) => {
-  const response = await axios.get(
-    `${API_URL}/scholarship/generate_pdf.php?batch_id=${batchId}`,
-    { headers: getAuthHeaders() }
-  )
-  return response.data
-}
-
 // Realtime polling
 export const pollForUpdates = async (batchId, lastHash = '', timeout = 30) => {
   const response = await axios.get(
@@ -178,7 +170,6 @@ export default {
   approveBatch,
   executeDistribution,
   getHistory,
-  getPdfData,
   pollForUpdates,
   getAllMembers,
   getComments,
