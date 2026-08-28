@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 
 function StudentsPage() {
+  const navigate = useNavigate();
   const [recipients, setRecipients] = useState([]);
   const [totalDistributed, setTotalDistributed] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -116,7 +118,13 @@ function StudentsPage() {
                   )}
                 >
                   <div className="recipient-info">
-                    <h3 className="recipient-name">
+                    <h3
+                      className="recipient-name clickable"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/students/${student.user_id}`);
+                      }}
+                    >
                       {student.firstname} {student.lastname}
                     </h3>
                     <span className="recipient-username">@{student.username}</span>

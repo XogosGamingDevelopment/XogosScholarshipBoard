@@ -56,10 +56,14 @@ export const createBatch = async (totalFundUsd, notes = '') => {
   return response.data
 }
 
-export const approveBatch = async (batchId) => {
+export const approveBatch = async (batchId, voteType = 'accept', comment = '') => {
   const response = await axios.post(
     `${API_URL}/scholarship/approve_batch.php`,
-    { batch_id: batchId },
+    {
+      batch_id: batchId,
+      vote_type: voteType,
+      comment: comment || null
+    },
     { headers: getAuthHeaders() }
   )
   return response.data
@@ -136,6 +140,33 @@ export const getScholarshipRecipients = async () => {
   return response.data
 }
 
+// Stored (permanent) distribution reports.
+// Frozen at execution time and never recomputed — this is the system of record.
+export const getStoredReport = async (batchId) => {
+  const response = await axios.get(
+    `${API_URL}/scholarship/get_report.php?batch_id=${batchId}`,
+    { headers: getAuthHeaders() }
+  )
+  return response.data
+}
+
+export const listStoredReports = async () => {
+  const response = await axios.get(
+    `${API_URL}/scholarship/get_report.php`,
+    { headers: getAuthHeaders() }
+  )
+  return response.data
+}
+
+// Student Detail API
+export const getStudentDetail = async (userId) => {
+  const response = await axios.get(
+    `${API_URL}/scholarship/get_student_detail.php?user_id=${userId}`,
+    { headers: getAuthHeaders() }
+  )
+  return response.data
+}
+
 // Default export for convenience
 export default {
   getGoogleAuthUrl,
@@ -152,5 +183,8 @@ export default {
   getAllMembers,
   getComments,
   saveComment,
-  getScholarshipRecipients
+  getScholarshipRecipients,
+  getStudentDetail,
+  getStoredReport,
+  listStoredReports
 }

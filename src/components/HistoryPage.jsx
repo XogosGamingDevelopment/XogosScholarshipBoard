@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { getHistory, getPdfData } from '../utils/api'
+import { getHistory, getPdfData, getStoredReport } from '../utils/api'
 import { downloadPdf } from '../utils/pdfGenerator'
 
 function HistoryPage({ boardMember, onLogout }) {
@@ -26,6 +26,20 @@ function HistoryPage({ boardMember, onLogout }) {
   }
 
   const handleDownloadPdf = async (batchId) => {
+    // Prefer the PERMANENT stored snapshot — frozen at execution, never recomputed.
+    // Batches distributed before 2026-08-28 have none, so fall back to live regeneration.
+    try {
+      const stored = await getStoredReport(batchId)
+      if (stored.success && stored.report_data) {
+        downloadPdf(stored.report_data)
+        return
+      }
+    } catch (err) {
+      if (err.response?.status !== 404) {
+        console.error('Error loading stored report:', err)
+      }
+    }
+
     try {
       const response = await getPdfData(batchId)
       if (response.success) {

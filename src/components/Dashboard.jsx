@@ -27,7 +27,7 @@ function Dashboard({ boardMember }) {
   const [notes, setNotes] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [isCreating, setIsCreating] = useState(false)
-  const [isApproving, setIsApproving] = useState(false)
+  const [isVoting, setIsVoting] = useState(false)
   const [isExecuting, setIsExecuting] = useState(false)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [error, setError] = useState('')
@@ -103,10 +103,13 @@ function Dashboard({ boardMember }) {
           setLastHash(response.state_hash)
           setApprovals({
             ...approvals,
-            count: response.batch.approval_count,
+            total_votes: response.batch.total_votes,
+            accept_count: response.batch.accept_count,
+            decline_count: response.batch.decline_count,
             can_execute: response.batch.can_execute,
             list: response.approvals,
-            current_user_approved: response.current_user_approved
+            current_user_voted: response.current_user_voted,
+            current_user_vote_type: response.current_user_vote_type
           })
           setActiveMembers(response.active_members || [])
 
@@ -158,22 +161,23 @@ function Dashboard({ boardMember }) {
     setIsCreating(false)
   }
 
-  const handleApprove = async () => {
-    setIsApproving(true)
+  const handleVote = async (voteType, comment) => {
+    setIsVoting(true)
     setError('')
 
     try {
-      const response = await approveBatch(currentBatch.batch.batch_id)
+      const response = await approveBatch(currentBatch.batch.batch_id, voteType, comment)
       if (response.success) {
-        setSuccessMessage('Your approval has been recorded!')
+        const voteWord = voteType === 'accept' ? 'accepted' : 'declined'
+        setSuccessMessage(`Your vote to ${voteWord} has been recorded!`)
         fetchData()
       } else {
-        setError(response.message || 'Failed to approve')
+        setError(response.message || 'Failed to record vote')
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to approve')
+      setError(err.response?.data?.message || 'Failed to record vote')
     }
-    setIsApproving(false)
+    setIsVoting(false)
   }
 
   const handleExecute = async () => {
@@ -232,9 +236,15 @@ function Dashboard({ boardMember }) {
     return activeMembers.some(m => m.id === memberId)
   }
 
-  // Check if a member has approved
-  const hasMemberApproved = (memberId) => {
+  // Check if a member has voted
+  const hasMemberVoted = (memberId) => {
     return approvals?.list?.some(a => a.board_member_id === memberId)
+  }
+
+  // Get member's vote type
+  const getMemberVoteType = (memberId) => {
+    const vote = approvals?.list?.find(a => a.board_member_id === memberId)
+    return vote?.vote_type || null
   }
 
   if (isLoading) {
@@ -251,7 +261,9 @@ function Dashboard({ boardMember }) {
   const displayStudents = currentBatch ? students : calculateAllocations()
   const hasBatch = !!currentBatch
   const batchStatus = currentBatch?.batch?.status
-  const canApprove = hasBatch && batchStatus === 'pending' && !approvals?.current_user_approved
+  const VOTABLE_STATUSES = ['pending', 'approved']
+  // Voting stays open after the threshold is met, so every attending member can vote
+  const canVote = hasBatch && VOTABLE_STATUSES.includes(batchStatus) && !approvals?.current_user_voted
   const canExecute = hasBatch && approvals?.can_execute && boardMember.is_admin
 
   return (
@@ -289,18 +301,22 @@ function Dashboard({ boardMember }) {
           </span>
         </div>
         <div className="members-grid">
-          {allMembers.map(member => (
-            <div
-              key={member.id}
-              className={`member-card ${isMemberOnline(member.id) ? 'online' : ''} ${hasMemberApproved(member.id) ? 'approved' : ''}`}
-            >
-              <span className={`member-status ${isMemberOnline(member.id) ? 'online' : ''}`}></span>
-              <span className="member-name">{member.firstname}</span>
-              {hasMemberApproved(member.id) && <span className="member-approved">✓</span>}
-            </div>
-          ))}
+          {allMembers.map(member => {
+            const voteType = getMemberVoteType(member.id)
+            return (
+              <div
+                key={member.id}
+                className={`member-card ${isMemberOnline(member.id) ? 'online' : ''} ${voteType ? `voted-${voteType}` : ''}`}
+              >
+                <span className={`member-status ${isMemberOnline(member.id) ? 'online' : ''}`}></span>
+                <span className="member-name">{member.firstname}</span>
+                {voteType === 'accept' && <span className="member-vote accept">✓</span>}
+                {voteType === 'decline' && <span className="member-vote decline">✗</span>}
+              </div>
+            )
+          })}
         </div>
-        {hasBatch && batchStatus === 'pending' && (
+        {hasBatch && VOTABLE_STATUSES.includes(batchStatus) && (
           <div className="confirmation-question">
             <p>Do you confirm these findings and do you agree to distribute these funds?</p>
           </div>
@@ -406,11 +422,11 @@ function Dashboard({ boardMember }) {
           <ApprovalPanel
             approvals={approvals}
             activeMembers={activeMembers}
-            canApprove={canApprove}
+            canVote={canVote}
             canExecute={canExecute}
-            isApproving={isApproving}
+            isVoting={isVoting}
             isExecuting={isExecuting}
-            onApprove={handleApprove}
+            onVote={handleVote}
             onExecute={() => setShowConfirmModal(true)}
           />
         </div>

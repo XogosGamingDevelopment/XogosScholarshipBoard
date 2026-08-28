@@ -4,6 +4,7 @@ import LoginPage from './components/LoginPage'
 import Dashboard from './components/Dashboard'
 import HistoryPage from './components/HistoryPage'
 import StudentsPage from './components/StudentsPage'
+import StudentDetailPage from './components/StudentDetailPage'
 import CommentsPage from './components/CommentsPage'
 import SettingsPage from './components/SettingsPage'
 import Layout from './components/Layout'
@@ -114,6 +115,14 @@ function App() {
           element={
             <ProtectedRoute>
               <StudentsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/students/:userId"
+          element={
+            <ProtectedRoute>
+              <StudentDetailPage />
             </ProtectedRoute>
           }
         />
